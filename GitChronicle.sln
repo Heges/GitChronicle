@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35931.197
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utils", "Utils\Utils.csproj", "{F0DF5F61-A8EE-4227-B05E-7C41C57B8B1B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Changeloger", "Changeloger\Changeloger.csproj", "{B1BBB0C7-14BC-4E91-92D1-F10820805C4D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F0DF5F61-A8EE-4227-B05E-7C41C57B8B1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F0DF5F61-A8EE-4227-B05E-7C41C57B8B1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F0DF5F61-A8EE-4227-B05E-7C41C57B8B1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F0DF5F61-A8EE-4227-B05E-7C41C57B8B1B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1BBB0C7-14BC-4E91-92D1-F10820805C4D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1BBB0C7-14BC-4E91-92D1-F10820805C4D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1BBB0C7-14BC-4E91-92D1-F10820805C4D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1BBB0C7-14BC-4E91-92D1-F10820805C4D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F10E19C1-0ED4-41CE-B213-B43B2A651B87}
+	EndGlobalSection
+EndGlobal
