@@ -27,9 +27,14 @@ namespace Utils.Services
                 StandardErrorEncoding = Encoding.UTF8,
             };
 
-            foreach (var a in args) psi.ArgumentList.Add(a);
+            foreach (var a in args) 
+                psi.ArgumentList.Add(a);
 
-            using var p = new Process { StartInfo = psi, EnableRaisingEvents = false };
+            using var p = new Process 
+            { 
+                StartInfo = psi,
+                EnableRaisingEvents = false
+            };
 
             p.Start();
 

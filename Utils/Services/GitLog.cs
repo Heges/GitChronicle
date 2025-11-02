@@ -8,49 +8,49 @@ using Utils.Core.Models;
 
 namespace Utils.Services
 {
-    public class ChangelogProcess : IProcess
+    public class GitLog : IProcess
     {
-        private readonly IState _state;
+        private readonly IContext _state;
         private readonly IShell _shell;
-        private readonly ILogger _logger;
+        private readonly ILogger<GitLog> _logger;
 
-        public ChangelogProcess(IState state, IShell shell, ILogger logger)
+        public string Name { get; }
+
+        public GitLog(IContext state, IShell shell, ILogger<GitLog> logger)
         {
             _state = state;
             _shell = shell;
             _logger = logger;
+            Name = "Log";
         }
 
-        public async Task<bool> Process()
+        public async Task<Result> Process(CancellationToken ct = default)
         {
-            if (String.IsNullOrEmpty(_state.ChangelogPath))
-            {
-                _logger.LogError("Параметр --changelog обязателен.");
-                return false;
-            }
-            if (String.IsNullOrEmpty(_state.BuildPath))
-            {
-                _logger.LogError("Параметр --build обязателен.");
-                return false;
-            }
-            if (!_state.ArgumentParser.TryGet("since", out var sinceStr) || string.IsNullOrWhiteSpace(sinceStr))
-            {
-                _logger.LogError("Параметр --since обязателен (напр. 2025-08-01).");
-                return false;
-            }
-            
+            var result = new Result();
+            string outFile = String.Empty;
 
-            var buildPath = Path.GetFullPath(_state.BuildPath);
-            var changelogPath = Path.GetFullPath(_state.ChangelogPath);
-            var sinceDate = sinceStr;
+            if (String.IsNullOrEmpty(_state.BuildOptions.ChangelogPath))
+            {
+                return result.Fail("Параметр --changelog обязателен.");
+            }
+            if (String.IsNullOrEmpty(_state.BuildOptions.BuildPath))
+            {
+                return result.Fail("Параметр --build обязателен.");
+            }
+            if (string.IsNullOrWhiteSpace(_state.GitOptions.StartDate))
+            {
+                return result.Fail("Параметр --since обязателен (напр. 2025-08-01).");
+            }
+
+            var buildPath = Path.GetFullPath(_state.BuildOptions.BuildPath);
+            var changelogPath = Path.GetFullPath(_state.BuildOptions.ChangelogPath);
+            var sinceDate = _state.GitOptions.StartDate;
 
             if (!Directory.Exists(changelogPath))
                 Directory.CreateDirectory(changelogPath);
 
             Console.WriteLine($"Сбор changelog'ов с {sinceDate}");
-            //раздитель по полям
             char fs = '\x1f';
-            //разделитель по записи
             char rs = '\x1e';
 
             foreach (var dir in Directory.EnumerateDirectories(buildPath))
@@ -61,7 +61,6 @@ namespace Utils.Services
                     continue;
 
                 Console.WriteLine($"Обработка: {name}");
-                // Форматированный лог для парсинга c разделителями
                 var format = $"%H%x1f%an%x1f%ad%x1f%B%x1e";
                 var (rc, stdout, stderr) = await _shell.RunInfo(dir, ["log", $"--since={sinceDate}", $"--pretty=format:{format}", "--date=iso"]);
 
@@ -120,13 +119,13 @@ namespace Utils.Services
                     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
                 });
 
-                var outFile = Path.Combine(changelogPath, $"{SanitizeFileName(name)}.json");
+                outFile = Path.Combine(changelogPath, $"{SanitizeFileName(name)}.json");
                 await File.WriteAllTextAsync(outFile, json, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
                 Console.WriteLine($"Changelog сохранён: {outFile}");
             }
 
-            return true;
+            return result.Ok(new Dictionary<string, object> { { Name, this } }, $"Changelog сохранён: {outFile}");
         }
 
         private string SanitizeFileName(string name)

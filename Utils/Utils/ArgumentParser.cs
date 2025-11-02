@@ -2,8 +2,6 @@
 {
     public class ArgumentParser
     {
-        public Dictionary<string, string> MappedArgs => _map;
-
         private readonly Dictionary<string, string> _map = new(StringComparer.OrdinalIgnoreCase);
 
         public ArgumentParser(string[] args) 
@@ -20,12 +18,13 @@
                 }
                 else
                 {
-                    _map[a] = "true";
+                    _map[a.ToLower().TrimStart('-')] = "true";
                 }
             }
         }
 
         public bool TryGet(string key, out string value) => _map.TryGetValue(key, out value!);
         public bool Has(string key) => _map.ContainsKey(key);
+        public Dictionary<string, string> Get() => _map;
     }
 }

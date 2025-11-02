@@ -2,7 +2,7 @@
 
 namespace Utils.Core.Models
 {
-    sealed class Commit
+    public class Commit
     {
         [JsonPropertyName("hash")] public string? Hash { get; set; }
         [JsonPropertyName("author")] public string? Author { get; set; }

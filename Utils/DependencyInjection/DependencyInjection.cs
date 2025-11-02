@@ -1,8 +1,10 @@
 ﻿using Changloger;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Utils.Core;
 using Utils.Core.Interfaces;
+using Utils.Core.Options;
 using Utils.Services;
 
 namespace Utils.DependencyInjection
@@ -11,27 +13,15 @@ namespace Utils.DependencyInjection
     {
         public static IServiceCollection AddUtills(this IServiceCollection services)
         {
-            services.AddSingleton<IState, State>();
-            services.AddTransient<IShell, Shell>();
-            services.AddTransient<UtilsEntryPoint>();
-            services.AddTransient<InitProcess>();
-            services.AddTransient<CleanProcess>();
-            services.AddTransient<UpdateProcess>();
-            services.AddTransient<ChangelogProcess>();
-
-            services.AddTransient<Func<string, IProcess>>(provider => (string_key) =>
-            {
-                return string_key switch
-                {
-                    "init" => provider.GetRequiredService<InitProcess>(),
-                    "update" => provider.GetRequiredService<UpdateProcess>(),
-                    "clean" => provider.GetRequiredService<CleanProcess>(),
-                    "changelog" => provider.GetRequiredService<ChangelogProcess>(),
-                    _ => throw new InvalidOperationException($"Не поддерживаемый тег ключа скрипта ОС: {string_key}")
-                };
-            });
-
+            services.AddOptions<BuildOptions>();
+            services.AddOptions<GitOptions>();
+            services.AddScoped<IContext, Context>();
+            services.AddSingleton<Pipeline>();
             services.AddSingleton<IShell, Shell>();
+            services.AddTransient<GitInit>();
+            services.AddTransient<Clean>();
+            services.AddTransient<GitUpdate>();
+            services.AddTransient<GitLog>();
 
             return services;
         }

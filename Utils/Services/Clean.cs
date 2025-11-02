@@ -1,59 +1,62 @@
 ﻿using Microsoft.Extensions.Logging;
 using Utils.Core;
 using Utils.Core.Interfaces;
+using Utils.Core.Models;
 
 namespace Utils.Services
 {
-    public class CleanProcess : IProcess
+    public class Clean : IProcess
     {
-        private readonly IState _state;
-        private readonly IShell _shell;
-        private readonly ILogger _logger;
+        private readonly IContext _state;
+        private readonly ILogger<Clean> _logger;
 
-        public CleanProcess(IState state, IShell shell, ILogger logger)
+        public string Name { get; }
+
+        public Clean(IContext state, ILogger<Clean> logger)
         {
             _state = state;
-            _shell = shell;
             _logger = logger;
+            Name = "Clean";
         }
 
-        public Task<bool> Process()
+        public Task<Result> Process(CancellationToken ct = default)
         {
-            if (String.IsNullOrEmpty(_state.BuildPath))
+            var result = new Result();
+
+            if (String.IsNullOrEmpty(_state.BuildOptions.BuildPath))
             {
-                _logger.LogError("Параметр --build обязателен.");
-                return Task.FromResult(false);
+                return Task.FromResult(result.Fail("Параметр --build обязателен."));
             }
-
-            var buildPath = Path.GetFullPath(_state.BuildPath);
-            if (!Directory.Exists(buildPath))
+            
+            foreach (var clean in _state.BuildOptions.CleanPaths)
             {
-                _logger.LogError($"Каталог не найден: {buildPath}");
-                return Task.FromResult(false);
-            }
-
-            var entries = Directory.EnumerateFileSystemEntries(buildPath, "*", 
-                new EnumerationOptions 
-                { 
-                    RecurseSubdirectories = false, 
-                    AttributesToSkip = 0, 
-                    IgnoreInaccessible = true 
-            });
-
-            foreach (var entry in entries)
-            {
-                try 
-                { 
-                    ForceDelete(entry); 
-                }
-                catch (Exception ex) 
+                Console.WriteLine($"Очищаем директорию: {clean}");
+                if (!Directory.Exists(clean))
                 {
-                    _logger.LogError($"Не удалось удалить: {entry} — {ex.Message}"); 
+                    return Task.FromResult(result.Fail($"Каталог не найден: {clean}"));
+                }
+
+                var entries = Directory.EnumerateFileSystemEntries(clean, "*",
+                    new EnumerationOptions
+                    {
+                        RecurseSubdirectories = false,
+                        AttributesToSkip = 0,
+                        IgnoreInaccessible = true
+                    });
+
+                foreach (var entry in entries)
+                {
+                    try
+                    {
+                        ForceDelete(entry);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Не удалось удалить: {entry} — {ex.Message}");
+                    }
                 }
             }
-
-            Console.WriteLine("Очистка завершена");
-            return Task.FromResult(true);
+            return Task.FromResult(result.Ok(new Dictionary<string, object> { { Name, this } }, $"Очистка завершена"));
         }
 
         private void ForceDelete(string path)
@@ -70,7 +73,7 @@ namespace Utils.Services
             }
         }
 
-        private  void ForceDeleteDirectory(string dir, int retries = 6, int delayMs = 250)
+        private void ForceDeleteDirectory(string dir, int retries = 6, int delayMs = 250)
         {
             TryNormalizeAttributesRecursive(dir);
 

@@ -1,4 +1,7 @@
-﻿using Changloger.Utils;
+﻿using Changeloger.Models;
+using Changeloger.Services;
+using ChangelogParser.Models;
+using Changloger.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -24,7 +27,7 @@ class Program
         {
             Log.Information("Приложение запускается...");
 
-            ServiceInitializing();
+            ServiceInitializing(args);
             ApplicationInitializing();
 
             Run(args).GetAwaiter().GetResult();
@@ -41,28 +44,36 @@ class Program
         }
     }
 
-    private static void ServiceInitializing()
+    private static void ServiceInitializing(string[] args = default)
     {
         Log.Information("Инициализация сервисов...");
 
-        _serviceProvider = ConfigureServices();
+        _serviceProvider = ConfigureServices(args);
 
         Log.Information("Сервисы проиницилизированны.");
     }
 
-    private static IServiceProvider ConfigureServices()
+    private static IServiceProvider ConfigureServices(string[] args = default)
     {
         var configuration = new ConfigurationBuilder()
             .SetBasePath(Environment.CurrentDirectory)
             .AddJsonFile("appsettings.json")
+            .AddInMemoryCollection(new ArgumentParser(args)
+                .RegisterArgsToConfiguration()
+            )
             .Build();
 
         var services = new ServiceCollection();
-
-        services.AddSingleton<IConfiguration>(configuration);
         
-        services.AddUtills();
-
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddLogging();
+        services.AddUtills()
+            .CreateContext(configuration);
+        services.AddOptions<PDFOptions>();
+        services.AddTransient<Changelog>();
+        services.AddTransient<ChangelogItem>();
+        services.AddSingleton<LoadChangelog>();
+        services.AddSingleton<CreatePDFDocument>();
 
         return services.BuildServiceProvider();
     }
@@ -81,58 +92,15 @@ class Program
         Console.WriteLine("-".FillingWidthWithSymbol());
         Console.WriteLine("CTRL + C для выхода из программы");
         Console.WriteLine("-".FillingWidthWithSymbol());
-        ConfigurationArgs(args);
-        Console.WriteLine("-".FillingWidthWithSymbol());
 
-        var utils = _serviceProvider.GetRequiredService<UtilsEntryPoint>();
+        var utils = _serviceProvider.GetRequiredService<Pipeline>();
         await utils.Run();
+
+        var changelog =  _serviceProvider.GetRequiredService<LoadChangelog>();
+        var current_state = _serviceProvider.GetRequiredService<IContext>();
+        var changelogs = changelog.Load(current_state.BuildOptions.RootFolder, current_state.BuildOptions.Platform);
+        var pdfdocument = _serviceProvider.GetRequiredService<CreatePDFDocument>();
+        var document = pdfdocument.Create(current_state.BuildOptions.RootFolder, changelogs, current_state.BuildOptions.Platform);
     }
 
-    private static void ConfigurationArgs(string[] args)
-    {
-        var state = _serviceProvider.GetRequiredService<IState>();
-
-        state.ArgumentParser = new ArgumentParser(args);
-
-        state.ArgumentParser.TryGet("update", out var isUpdate);
-
-        state.IsUpdating = !string.IsNullOrEmpty(isUpdate);
-
-        state.ArgumentParser.TryGet("platform", out var argPlatform);
-
-        string platform = String.IsNullOrEmpty(argPlatform) ? "Project" : argPlatform;
-
-        state.ArgumentParser.TryGet("user", out var user);
-
-        state.User = user;
-
-        state.ArgumentParser.TryGet("token", out var token);
-
-        state.Token = token;
-
-        char[] invalidChars = Path.GetInvalidPathChars();
-
-        state.ArgumentParser.TryGet("repolist", out var list);
-
-        state.GitSource = !String.IsNullOrEmpty(list) 
-            ? list 
-            : "";
-
-        state.ArgumentParser.TryGet("build", out var build);
-
-        string rootFolder = (!String.IsNullOrEmpty(build) && build.Any(c => invalidChars.Contains(c)))
-            ? Path.Combine(Environment.CurrentDirectory, platform) 
-            : build;
-
-        state.RootFolder = rootFolder;
-
-        string buildPath = Path.Combine(rootFolder, $"Projects");
-
-        state.BuildPath = buildPath;
-
-        string changelogPath = Path.Combine(rootFolder, "Changelogs");
-
-        state.ChangelogPath = changelogPath;
-
-    }
 }
